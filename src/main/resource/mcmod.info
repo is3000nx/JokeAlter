@@ -1,0 +1,18 @@
+[
+{
+  "modid": "joke.sacrificial.alter",
+  "name": "Joke-SacrificialAlter",
+  "description":"",
+  "version": "mc1.11.2-r1",
+  "mcversion": "1.11.2",
+  "url": "",
+  "updateUrl": "",
+  "authors": [ "is3000nx"],
+  "credits": "is3000nx",
+  "logoFile": "",
+  "parent":"",
+  "screenshots": [],
+  "requiredMods": ["MinecraftForge"],
+  "dependencies": []
+}
+]

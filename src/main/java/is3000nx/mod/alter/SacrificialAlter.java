@@ -1,19 +1,23 @@
 package is3000nx.mod.alter;
 
 import java.util.List;
+import net.minecraft.advancements.*;
 import net.minecraft.block.state.IBlockState;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.entity.item.EntityEnderCrystal;
 import net.minecraft.entity.boss.EntityDragon;
 import net.minecraft.entity.boss.dragon.phase.PhaseList;
+import net.minecraft.entity.boss.dragon.phase.PhaseStrafePlayer;
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;
-import net.minecraft.stats.AchievementList;
+import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
 import net.minecraftforge.event.entity.player.PlayerSleepInBedEvent;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.Mod;
@@ -30,7 +34,7 @@ public class SacrificialAlter
 {
 	public static final String modname = "Joke-SacrificialAlter";
     public static final String modid = "joke.sacrificial.alter";
-    public static final String version = "mc1.11.2-r1";
+    public static final String version = "@VERSION@";
 
 	/**
 	 * ベッドをクリックした位置と祭壇の中心のオフセット.
@@ -91,13 +95,9 @@ public class SacrificialAlter
 			return;
 		if (player.isPlayerSleeping() || !player.isEntityAlive())
 			return;
-		
-		if (!event.getEntityPlayer().hasAchievement(AchievementList.THE_END2))
-			return;
-		// 「ドラゴンのリスポーン」なので、1回倒している事が前提条件。
-		// 1回倒しているかどうかのフラグは存在するけど、
-		// 面倒なので、実績で代用
 
+		if (!hasAdvancement(player))
+			return;
 
 		// ベッドの向きを調べれば、2箇所チェックするだけで
 		// 祭壇の中心が確定するが、
@@ -108,14 +108,17 @@ public class SacrificialAlter
 			BlockPos posCenter = event.getPos().add(OFFSET[i][0], 0, OFFSET[i][1]);
 			if (!isAlter(world, posCenter))
 				continue;
-
+			
 			EntityDragon dragon = new EntityDragon(world);
-			dragon.getPhaseManager().setPhase(PhaseList.STRAFE_PLAYER /*HOLDING_PATTERN*/);
+			dragon.getPhaseManager().setPhase(PhaseList.HOLDING_PATTERN);
 			dragon.setLocationAndAngles(posCenter.getX(),
 										128.0,
 										posCenter.getZ(),
 										world.rand.nextFloat() * 360.0f,
 										0.0f);
+			((PhaseStrafePlayer)dragon.getPhaseManager().getPhase(PhaseList.STRAFE_PLAYER)).setTarget(player);
+			
+			
 			world.spawnEntity(dragon);
 			// 参考：net.minecraft.world.end.DragonFightManager.spawnDragon();
 
@@ -208,5 +211,43 @@ public class SacrificialAlter
 		}
 
 		return false;
+	}
+
+	/**
+	 * 前提となる進捗を満たしているか
+	 *
+	 * @param p プレイヤ
+	 * @return true=満たしている
+	 */
+	private boolean hasAdvancement(EntityPlayer p)
+	{
+		if (!(p instanceof EntityPlayerMP))
+			return false;
+
+		EntityPlayerMP player = (EntityPlayerMP)p;
+
+		WorldServer world = player.getServerWorld();
+		if (world == null)
+			return false;
+
+		AdvancementManager manager = world.getAdvancementManager();
+		if (manager == null)
+			return false;
+
+		Advancement ad = manager.getAdvancement(new ResourceLocation("minecraft", "end/kill_dragon"));
+		if (ad == null)
+			return false;
+
+		// ------------------
+
+		PlayerAdvancements pa = player.getAdvancements();
+		if (pa == null)
+			return false;
+
+		AdvancementProgress progress = pa.getProgress(ad);
+		if (progress == null)
+			return false;
+		
+		return progress.isDone();
 	}
 }
